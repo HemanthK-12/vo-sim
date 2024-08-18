@@ -20,12 +20,12 @@ near = 0.02  # Near clipping plane
 far = 1  # Far clipping plane
 width, height = 320, 320  # Image size
 
-camera_position = [0, 0, 0.05]
+camera_position = [0, 0, 1]
 camera_orientation = [0, 0, 0, 1]  # Quaternion for no rotation
 
 drone_position, drone_orientation = p.getBasePositionAndOrientation(drone)
 
-view_matrix = p.computeViewMatrix(camera_position, [0, 0, 0], [0, 0, 1])
+view_matrix = p.computeViewMatrix(camera_position, [0, 0, 0], [0, 1, 0])
 
 projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
 
