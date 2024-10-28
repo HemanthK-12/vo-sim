@@ -6,7 +6,7 @@ import datetime
 import matplotlib.pyplot as plt
 
 physicsClient=p.connect(p.GUI)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
+# p.configureDebugVisualizer(p.COV_ENABLE_GUI,0)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
 drone_quat=p.getQuaternionFromEuler([1.57, 0, 0])
@@ -33,12 +33,12 @@ projection_matrix=p.computeProjectionMatrixFOV(fov,aspect,near,far)
 orb = cv2.ORB_create()
 bf_matcher=cv2.BFMatcher(cv2.NORM_HAMMING,crossCheck=True)
 keys={
-        'w':[-0.2,0,0],
-        's':[0.2,0,0], 
-        'a':[0,-0.1,0], 
-        'd':[0,0.1,0], 
-        'q':[0,0,-0.1], 
-        'e':[0,0,0.1]
+        'w':[-0.02,0,0],
+        's':[0.02,0,0], 
+        'a':[0,-0.02,0], 
+        'd':[0,0.02,0], 
+        'q':[0,0,-0.02], 
+        'e':[0,0,0.02]
     }
 positions=[]
 estimated=[]
