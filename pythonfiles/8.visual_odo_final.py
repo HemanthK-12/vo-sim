@@ -71,6 +71,7 @@ while(1):  # Loop for a set number of frames
     images = p.getCameraImage(width, height, view_matrix, projection_matrix)
     rgba_img = np.reshape(images[2], (height, width, 4))
     rgb_img = rgba_img[:, :, :3]
+    rgb_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
 
     # Detect ORB keypoints and descriptors
     keypoint_list, descriptor_list = orb.detectAndCompute(rgb_img, None)
