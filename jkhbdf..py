@@ -1,167 +1,47 @@
-import nbformat as nbf
-
-# Define the content for each cell
-cells = [
-    {
-        "cell_type": "code",
-        "source": '''\
 import pybullet as p
 import pybullet_data
-import numpy as np
-import cv2
-import datetime
-import matplotlib.pyplot as plt
+import time
 
-# Initialize PyBullet physics client
-physicsClient = p.connect(p.GUI)
-p.configureDebugVisualizer(p.COV_ENABLE_GUI, 0)
+# Initialize PyBullet
+p.connect(p.GUI)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
+p.setGravity(0, 0, -9.8)
 
-# Load drone and environment URDFs
-drone_quat = p.getQuaternionFromEuler([1.57, 0, 0])
-drone = p.loadURDF('./cf2/cf2.urdf', globalScaling=2, baseOrientation=drone_quat, basePosition=[0, 0, 0])
-forest = p.loadURDF("./forest/forest.urdf", basePosition=[0, 0, 0], baseOrientation=drone_quat, useFixedBase=True)
-texture_id = p.loadTexture("./forest/forest.png")
-p.changeVisualShape(forest, -1, textureUniqueId=texture_id)
+# Load the plane and drone URDF
+plane_id = p.loadURDF("plane.urdf")
+drone_id = p.loadURDF("./cf2/cf2.urdf", [0, 0, 1])
 
-# Set camera parameters
-fov = 60
-aspect = 1
-near, far = 0.001, 1000
-width, height = 1920, 1088
-camera_position = [0, 0, -0.1]
-camera_target = [-1, 0, 0]
-fx = width / (2 * (np.tan(np.deg2rad(fov) / 2)))
-fy = height / (2 * (np.tan(np.deg2rad(fov) / 2)))
+# Define the control parameters
 
-# Create intrinsic matrix
-intrinsic_matrix = np.array(
-    [[fx, 0, width / 2],
-     [0, fy, height / 2],
-     [0, 0, 1]]
-)
-projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
+move_step = 0.01
 
-# Initialize ORB and BFMatcher for feature matching
-orb = cv2.ORB_create()
-bf_matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
-
-# Define movement keys and other variables
-keys = {
-    'w': [-0.2, 0, 0],
-    's': [0.2, 0, 0],
-    'a': [0, -0.1, 0],
-    'd': [0, 0.1, 0],
-    'q': [0, 0, -0.1],
-    'e': [0, 0, 0.1]
-}
-positions = []
-estimated = []
-scale_factor = 0.1
-SCALE_ADJUSTMENT_FACTOR = 0.05
-prev_keypoint, prev_descriptor = None, None
-''',
-    },
-    {
-        "cell_type": "code",
-        "source": '''\
+# Main simulation loop
 while True:
-    estimated_position = []
-    drone_position, drone_orientation = p.getBasePositionAndOrientation(drone)
-    positions.append(drone_position)
-    prev_position = drone_position
+    keys = p.getKeyboardEvents()
+    
+    # Get the current position and orientation of the drone
+    current_position, current_orientation = p.getBasePositionAndOrientation(drone_id)
+    
+    # Update the position based on key input
+    if ord('w') in keys and keys[ord('w')] & p.KEY_IS_DOWN:
+        current_position = [current_position[0], current_position[1] + move_step, current_position[2]]
+    if ord('s') in keys and keys[ord('s')] & p.KEY_IS_DOWN:
+        current_position = [current_position[0], current_position[1] - move_step, current_position[2]]
+    if ord('a') in keys and keys[ord('a')] & p.KEY_IS_DOWN:
+        current_position = [current_position[0] - move_step, current_position[1], current_position[2]]
+    if ord('d') in keys and keys[ord('d')] & p.KEY_IS_DOWN:
+        current_position = [current_position[0] + move_step, current_position[1], current_position[2]]
+    if ord('q') in keys and keys[ord('q')] & p.KEY_IS_DOWN:
+        current_position = [current_position[0], current_position[1], current_position[2] + move_step]
+    if ord('e') in keys and keys[ord('e')] & p.KEY_IS_DOWN:
+        current_position = [current_position[0], current_position[1], current_position[2] - move_step]
+    
+    # Set the new position of the drone
+    p.resetBasePositionAndOrientation(drone_id, current_position, current_orientation)
+    
+    # Step the simulation
+    p.stepSimulation()
+    time.sleep(time_step)
 
-    # Get keyboard input
-    keys_pressed = p.getKeyboardEvents()
-    if ord('x') in keys_pressed and keys_pressed[ord('x')] & p.KEY_WAS_TRIGGERED:
-        break
-    for key, movement in keys.items():
-        if ord(key) in keys_pressed and keys_pressed[ord(key)] & p.KEY_WAS_TRIGGERED:
-            for i in range(3):
-                drone_position.append(drone_position[i] + movement[i])
-            p.resetBasePositionAndOrientation(drone, drone_position, drone_orientation)
-    if np.all(prev_position == drone_position):
-        continue
-
-    # Update camera view matrix
-    view_matrix = p.computeViewMatrix(
-        cameraEyePosition=[drone_position[0] + camera_position[0],
-                           drone_position[1] + camera_position[1],
-                           drone_position[2] + camera_position[2]],
-        cameraTargetPosition=[drone_position[0] + camera_target[0],
-                              drone_position[1] + camera_target[1],
-                              drone_position[2] + camera_target[2]],
-        cameraUpVector=[1, 0, 0]
-    )
-
-    # Capture camera image
-    images = p.getCameraImage(width, height, view_matrix, projection_matrix)
-    rgba_img = np.reshape(images[2], (height, width, 4))
-    rgb_img = rgba_img[:, :, :3]
-
-    # Detect and compute ORB keypoints and descriptors
-    keypoint_list, descriptor_list = orb.detectAndCompute(rgb_img, None)
-    if prev_keypoint is not None and descriptor_list is not None:
-        matches = bf_matcher.match(prev_descriptor, descriptor_list)
-        matches = sorted(matches, key=lambda x: x.distance)
-
-        quality_matches = [m for m in matches if m.distance < 30]
-
-        old_keypoints_matched = np.array([prev_keypoint[m.queryIdx].pt for m in quality_matches], dtype=np.float32).reshape(-1, 1, 2)
-        new_keypoints_matched = np.array([keypoint_list[m.trainIdx].pt for m in quality_matches], dtype=np.float32).reshape(-1, 1, 2)
-
-        # Estimate essential matrix with RANSAC
-        if len(quality_matches) >= 8:
-            E, mask = cv2.findEssentialMat(new_keypoints_matched, old_keypoints_matched, intrinsic_matrix, method=cv2.RANSAC, prob=0.999, threshold=1.0)
-            _, R, t, _ = cv2.recoverPose(E, new_keypoints_matched, old_keypoints_matched, intrinsic_matrix)
-            t = (t * scale_factor).ravel()
-
-            scale_factor += SCALE_ADJUSTMENT_FACTOR * (0.1 - np.linalg.norm(t))
-            for i in range(3):
-                estimated_position.append(prev_position[i] + t[i])
-            estimated.append(estimated_position)
-
-            # Print position updates
-            print("Translation matrix:\\n", t)
-            print(f"Actual translation:\\n{np.array(drone_position) - np.array(prev_position)}")
-            print(f"Estimated position:\\n{estimated_position}")
-            print(f"Actual position:\\n{drone_position}")
-            print(f"Difference between actual and estimated position:\\n{np.array(drone_position) - np.array(estimated_position)}\\n\\n")
-
-    prev_descriptor = descriptor_list
-    prev_keypoint = keypoint_list
+# Disconnect from PyBullet
 p.disconnect()
-''',
-    },
-    {
-        "cell_type": "code",
-        "source": '''\
-positions = list(zip(*positions))
-estimated = list(zip(*estimated))
-fig = plt.figure()
-ax = fig.add_subplot(111, projection='3d')
-ax.plot(positions[0], positions[1], positions[2], label='Drone Trajectory')
-ax.plot(estimated[0], estimated[1], estimated[2], label='Estimated Trajectory')
-ax.set_xlabel('X')
-ax.set_ylabel('Y')
-ax.set_zlabel('Z')
-plt.legend()
-
-# Save the plot with a timestamp
-timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-plt.savefig(f'./trajectories/odometry_{timestamp}.png')
-plt.show()
-''',
-    },
-]
-
-# Create a notebook object
-nb = nbf.v4.new_notebook()
-nb['cells'] = [nbf.v4.new_code_cell(cell["source"]) for cell in cells]
-
-# Save the notebook
-output_path = "/mnt/data/simulation_drone_trajectory.ipynb"
-with open(output_path, "w") as f:
-    nbf.write(nb, f)
-
-output_path
