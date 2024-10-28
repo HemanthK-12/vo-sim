@@ -17,7 +17,7 @@ fov = 60
 aspect = 1
 near = 0.001
 far = 1000
-width, height = 1920, 1088
+width, height = 960, 540
 
 camera_position = [0, 0, -0.1]
 camera_target = [-1, 0, 0]
