@@ -2,9 +2,10 @@ import pybullet as p
 import pybullet_data
 import numpy as np
 import cv2
-import time
+import logging
 import datetime
 import matplotlib.pyplot as plt
+import os
 plt.ion()
 physicsClient = p.connect(p.GUI)
 p.setAdditionalSearchPath(pybullet_data.getDataPath())
@@ -14,6 +15,12 @@ drone = p.loadURDF('./cf2/cf2.urdf', globalScaling=2, baseOrientation=drone_quat
 forest = p.loadURDF("./forest/forest.urdf", basePosition=[0, 0, 0], baseOrientation=drone_quat, useFixedBase=True)
 texture_id = p.loadTexture("./forest/forest.png")
 p.changeVisualShape(forest, -1, textureUniqueId=texture_id)
+
+# Set up logging
+timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+log_filename = os.path.join('./logs',f'log_{timestamp}.txt')
+logging.basicConfig(filename=log_filename, level=logging.INFO, format='%(message)s')
+logger = logging.getLogger()
 
 fov = 60
 aspect = 1
@@ -53,7 +60,6 @@ ax.set_zlabel('Z')
 drone_trajectory, = ax.plot([p[0] for p in positions], [p[1] for p in positions], [p[2] for p in positions], label='Drone Trajectory')
 estimated_trajectory, = ax.plot([p[0] for p in estimated], [p[1] for p in estimated], [p[2] for p in estimated], label='Estimated Trajectory')
 plt.legend()
-time_step = 1.0 / 240.0
 
 while True:
     estimated_position = []
@@ -96,12 +102,16 @@ while True:
             scale_factor += SCALE_ADJUSTMENT_FACTOR * (0.1 - np.linalg.norm(t))
             estimated_position = [prev_position[i] + t[i] for i in range(3)]
             estimated.append(estimated_position)
-
-            print("Translation matrix:\n", t)
-            print(f"Actual translation:\n{np.array(drone_position) - np.array(prev_position)}")
-            print(f"Estimated position:\n{estimated_position}")
-            print(f"Actual position:\n{drone_position}")
-            print(f"Difference between actual and estimated position:{np.array(drone_position) - np.array(estimated_position)}\n\n\n")
+            logger.info("Translation matrix:\n%s", t)
+            logger.info("Actual translation:\n%s", np.array(drone_position) - np.array(prev_position))
+            logger.info("Estimated position:\n%s", estimated_position)
+            logger.info("Actual position:\n%s", drone_position)
+            logger.info("Difference between actual and estimated position:\n%s\n\n\n", np.array(drone_position) - np.array(estimated_position))
+            # print("Translation matrix:\n", t)
+            # print(f"Actual translation:\n{np.array(drone_position) - np.array(prev_position)}")
+            # print(f"Estimated position:\n{estimated_position}")
+            # print(f"Actual position:\n{drone_position}")
+            # print(f"Difference between actual and estimated position:{np.array(drone_position) - np.array(estimated_position)}\n\n\n")
 
     prev_descriptor = descriptor_list
     prev_keypoint = keypoint_list
@@ -122,7 +132,6 @@ while True:
     plt.draw()
     plt.pause(0.01)
     p.stepSimulation()
-    time.sleep(time_step)
 
 p.disconnect()
 
