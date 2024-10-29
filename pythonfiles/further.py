@@ -85,7 +85,7 @@ while True:
     # Update the debug visualizer camera based on the drone's new position
     camera_position = [drone_position[i] + camera_offset[i] for i in range(3)]
     camera_target = [drone_position[i] + camera_target_offset[i] for i in range(3)]
-    p.resetDebugVisualizerCamera(cameraDistance=5, cameraYaw=50, cameraPitch=-35, cameraTargetPosition=camera_target)
+    p.resetDebugVisualizerCamera(cameraDistance=5, cameraYaw=50, cameraPitch=-35, cameraTargetPosition=drone_position)
 
     view_matrix = p.computeViewMatrix(cameraEyePosition=camera_position, cameraTargetPosition=camera_target, cameraUpVector=[0, 0, 1])
 

@@ -8,7 +8,7 @@
       </geometry>
       <material name="texture_material">
         <texture filename="./forest/forest.png" />
-    </material>
+      </material>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>

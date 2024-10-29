@@ -29,21 +29,14 @@ projection_matrix = p.computeProjectionMatrixFOV(fov, aspect, near, far)
 orb = cv2.ORB_create()
 bf_matcher = cv2.BFMatcher(cv2.NORM_HAMMING, crossCheck=True)
 step=0.1
-# keys={
-#         'w':[-step,0,0],
-#         's':[step,0,0], 
-#         'a':[0,-step,0], 
-#         'd':[0,step,0], 
-#         'q':[0,0,-step], 
-#         'e':[0,0,step]
-#     }
+
 keys = {
     p.B3G_UP_ARROW: [-step, 0, 0],    # Up Arrow
     p.B3G_DOWN_ARROW: [step, 0, 0],   # Down Arrow
     p.B3G_LEFT_ARROW: [0, -step, 0],  # Left Arrow
     p.B3G_RIGHT_ARROW: [0, step, 0],  # Right Arrow
-    ord('1'): [0, 0, step],          # 'w' key
-    ord('2'): [0, 0, -step]            # 's' key
+    ord('1'): [0, 0, -step],          # 'w' key
+    ord('2'): [0, 0, step]            # 's' key
 }
 positions = [[0,0,0]]
 estimated = [[0,0,0]]
@@ -78,6 +71,7 @@ while True:
     if np.all(prev_position == drone_position):
         continue
     keys_pressed = {}
+    p.resetDebugVisualizerCamera(cameraDistance=5, cameraYaw=50, cameraPitch=-35, cameraTargetPosition=drone_position)
     view_matrix = p.computeViewMatrix(cameraEyePosition=[drone_position[0] + camera_position[0], drone_position[1] + camera_position[1], drone_position[2] + camera_position[2]], cameraTargetPosition=[drone_position[0] + camera_target[0], drone_position[1] + camera_target[1], drone_position[2] + camera_target[2]], cameraUpVector=[1, 0, 0])
 
     images = p.getCameraImage(width, height, view_matrix, projection_matrix)
@@ -118,6 +112,12 @@ while True:
     drone_trajectory.set_3d_properties([p[2] for p in positions])
     estimated_trajectory.set_data([p[0] for p in estimated], [p[1] for p in estimated])
     estimated_trajectory.set_3d_properties([p[2] for p in estimated])
+
+    contact_points = p.getContactPoints()
+    if contact_points:
+        print("Collision detected!")
+        for contact in contact_points:
+            print(f"Object A ID: {contact[1]}, Object B ID: {contact[2]}, Position: {contact[5]}")
 
     plt.draw()
     plt.pause(0.01)
