@@ -7,6 +7,7 @@ from pegasus.simulator.logic.vehicles.multirotor import Multirotor, MultirotorCo
 from pegasus.simulator.logic.interface.pegasus_interface import PegasusInterface
 import os
 from scipy.spatial.transform import Rotation
+from custom_control_backend import RLController
 
 class PegasusApp:
     def __init__(self):
@@ -14,15 +15,13 @@ class PegasusApp:
         self.pg = PegasusInterface()
         self.pg._world = World(**self.pg._world_settings)
         self.world = self.pg.world
-        self.pg.load_environment(SIMULATION_ENVIRONMENTS["Curved Gridroom"])
-        self.curr_dir = str(Path(os.path.dirname(os.path.realpath(__file__))).resolve())
+        self.pg.load_environment(SIMULATION_ENVIRONMENTS["Default Environment"])
         
         config_multirotor1 = MultirotorConfig()
-        config_multirotor1.backends = [NonlinearController(
-            trajectory_file=self.curr_dir + "/trajectories/pitch_relay_90_deg_2.csv",
-            results_file=self.curr_dir + "/results/single_statistics.npz",
-            Ki=[0.5, 0.5, 0.5],
-            Kr=[2.0, 2.0, 2.0]
+        config_multirotor1.backends = [RLController(
+            desired_altitude=2.0,  # Set the desired altitude
+            Kp=1.0,                 # Proportional gain
+            Kd=0.5                  # Derivative gain
         )]
         Multirotor(
             "/World/quadrotor1",
