@@ -16,6 +16,6 @@ class HoverEnvCfg(BaseCfg):
         constructor which executes after the __init__ of default env config, for hover task, hence post init
         '''
         super().__post_init__()
-        self.episode_length=5 # for now
+        self.episode_length_s=5 # for now
         self.rewards=HoverRewards()
 

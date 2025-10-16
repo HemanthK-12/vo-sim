@@ -4,6 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 import gymnasium as gym  # noqa: F401
+from isaaclab.envs import ManagerBasedRLEnv
 from .auto_drone_rl.hover_env_cfg import HoverEnvCfg
 
 gym.register(

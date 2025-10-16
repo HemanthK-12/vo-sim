@@ -24,7 +24,9 @@ from . import mdp
 ##
 
 from isaaclab_assets.robots.cartpole import CARTPOLE_CFG  # isort:skip
-
+from isaacsim.core.utils.nucleus import get_assets_root_path
+# should be omni.isaaac.core.utils.nucleus but changed according to this : https://isaac-sim.github.io/IsaacLab/main/source/refs/migration.html#:~:text=Renaming%20of%20Isaac,isaacsim.gui.components
+ASSETS_ROOT = get_assets_root_path()
 
 ##
 # Scene definition
@@ -36,14 +38,23 @@ class AutoDroneRlSceneCfg(InteractiveSceneCfg):
     """Configuration for a cart-pole scene."""
 
     # ground plane
-    ground = AssetBaseCfg(
-        prim_path="/World/ground",
-        spawn=sim_utils.GroundPlaneCfg(size=(100.0, 100.0)),
+    environment = AssetBaseCfg(
+        prim_path="/World/Env",
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"{ASSETS_ROOT}/Isaac/Environments/Grid/default_environment.usd",  # see list in README.md
+        ),
     )
 
     # robot
-    robot: ArticulationCfg = CARTPOLE_CFG.replace(prim_path="{ENV_REGEX_NS}/Robot")
-
+    drone = ArticulationCfg(
+        prim_path="{ENV_REGEX_NS}/Drone",
+        spawn=sim_utils.UsdFileCfg(
+            usd_path=f"../../../../../../assets/iris.usd",  # path in assets/ folder in base position
+        ),
+        init_state=sim_utils.ArticulationInitStateCfg(
+            pos=(0.0, 0.0, 0.1),  # Start just above ground
+        ),
+    )
     # lights
     dome_light = AssetBaseCfg(
         prim_path="/World/DomeLight",
@@ -60,7 +71,7 @@ class AutoDroneRlSceneCfg(InteractiveSceneCfg):
 class ActionsCfg:
     """Action specifications for the MDP."""
 
-    joint_effort = mdp.JointEffortActionCfg(asset_name="robot", joint_names=["slider_to_cart"], scale=100.0)
+    thrust = mdp.BodyForceActionCfg(asset_name="drone")
 
 
 @configclass
@@ -158,7 +169,7 @@ class TerminationsCfg:
 @configclass
 class AutoDroneRlEnvCfg(ManagerBasedRLEnvCfg):
     # Scene settings
-    scene: AutoDroneRlSceneCfg = AutoDroneRlSceneCfg(num_envs=4096, env_spacing=4.0)
+    scene: AutoDroneRlSceneCfg = AutoDroneRlSceneCfg(num_envs=16, env_spacing=4.0)
     # Basic settings
     observations: ObservationsCfg = ObservationsCfg()
     actions: ActionsCfg = ActionsCfg()
@@ -178,3 +189,4 @@ class AutoDroneRlEnvCfg(ManagerBasedRLEnvCfg):
         # simulation settings
         self.sim.dt = 1 / 120
         self.sim.render_interval = self.decimation
+        
